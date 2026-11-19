@@ -2,6 +2,8 @@
 
 SIP-бот с поддержкой видео, аудио и loopback sink для PipeWire/PulseAudio.
 
+![SIP Bot GUI](docs/screenshot.png)
+
 ## Возможности
 
 - SIP-звонки через PJSUA2
