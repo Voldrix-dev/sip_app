@@ -12,6 +12,11 @@ error() { echo -e "\033[0;31m[ERROR]\033[0m $1"; exit 1; }
 
 create_sink_now() {
     if command -v pactl >/dev/null 2>&1; then
+        # Проверяем, не существует ли уже sink
+        if pactl list short sinks 2>/dev/null | grep -qw "$SINK_NAME"; then
+            log "Sink '$SINK_NAME' уже существует, пропускаем создание"
+            return 0
+        fi
         pactl load-module module-null-sink \
             sink_name="$SINK_NAME" \
             sink_properties=device.description="$SINK_DESCRIPTION" >/dev/null 2>&1 || true
