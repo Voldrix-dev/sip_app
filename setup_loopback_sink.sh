@@ -48,16 +48,12 @@ setup_pipewire() {
     local pw_dir="$HOME/.config/pipewire/pipewire-pulse.conf.d"
     mkdir -p "$pw_dir"
 
-    # pipewire-pulse.conf.d — работает во всех версиях
+    # pipewire-pulse.conf.d — правильный формат для pipewire-pulse
     cat > "$pw_dir/99-sipbot-sink.conf" <<EOF
-context.modules = [
-    { name = libpipewire-module-null-sink
-      args = {
-        sink_name = "$SINK_NAME"
-        sink_properties = {
-          device.description = "$SINK_DESCRIPTION"
-        }
-      }
+pulse.cmd = [
+    {
+        cmd = "load-module"
+        args = "module-null-sink sink_name=$SINK_NAME sink_properties=device.description=$SINK_DESCRIPTION"
     }
 ]
 EOF
