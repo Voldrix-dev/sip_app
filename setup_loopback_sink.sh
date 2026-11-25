@@ -84,31 +84,9 @@ EOF
         log "WirePlumber >= 0.5 — Lua-конфиг пропущен"
     fi
 
-    # Systemd user service — самый надёжный способ (все версии)
-    local service_dir="$HOME/.config/systemd/user"
-    local service_file="$service_dir/sipbot-sink.service"
-    mkdir -p "$service_dir"
-
-    cat > "$service_file" <<EOF
-[Unit]
-Description=SIP Bot Loopback Sink
-After=pipewire-pulse.service
-Requires=pipewire-pulse.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/pactl load-module module-null-sink sink_name=$SINK_NAME sink_properties=device.description=$SINK_DESCRIPTION
-RemainAfterExit=yes
-
-[Install]
-WantedBy=pipewire-pulse.service
-EOF
-
-    log "Systemd user service создан: $service_file"
-
-    systemctl --user daemon-reload
-    systemctl --user enable --now sipbot-sink.service 2>/dev/null || true
-    log "Service включён и запущен"
+    # Systemd user service убран — вызывает дубли с pipewire-pulse.conf.d.
+    # Нативный конфиг pipewire-pulse.conf.d достаточно для автозагрузки.
+    log "Systemd сервис не создаётся (избегаем дублей с pipewire-pulse.conf.d)"
 }
 
 setup_pulseaudio() {
