@@ -272,26 +272,28 @@ class AudioManager:
 				return index
 		return None
 
+	def _sink_exists(self, sink_name: str) -> bool:
+		try:
+			result = subprocess.run(
+				["pactl", "list", "short", "sinks"],
+				text=True, capture_output=True, check=False, timeout=3)
+		except Exception:
+			return False
+		if result.returncode != 0:
+			return False
+		for line in result.stdout.splitlines():
+			parts = line.split()
+			if len(parts) > 1 and parts[1] == sink_name:
+				return True
+		return False
+
 	def ensure_loopback_sink(self):
 		if not self.config.loopback_auto_create_sink:
 			return False
 		sink_name = self.config.loopback_sink_name or "sipbot_sink"
 		description = self.config.loopback_sink_description or "SIPBotSink"
-		try:
-			existing = subprocess.run(
-				["pactl", "list", "short", "sinks"],
-				text=True, capture_output=True, check=False, timeout=3)
-		except FileNotFoundError:
-			self.log("[AUDIO] pactl not found, cannot auto-create loopback sink")
-			return False
-		except Exception as e:
-			self.log(f"[AUDIO] pactl list sinks failed: {e}")
-			return False
 
-		if existing.returncode == 0 and any(
-				line.split()[1] == sink_name
-				for line in existing.stdout.splitlines()
-				if len(line.split()) > 1):
+		if self._sink_exists(sink_name):
 			self.log(f"[AUDIO] loopback sink already exists: {sink_name}")
 			if not self._wait_loopback_sink_ready(sink_name):
 				return False
@@ -306,10 +308,18 @@ class AudioManager:
 		except Exception as e:
 			self.log(f"[AUDIO] loopback sink create failed: {e}")
 			return False
+
 		if created.returncode != 0:
 			err = (created.stderr or created.stdout or "").strip()
+			if "already exists" in err.lower() or "module-null-sink" in err.lower():
+				if self._sink_exists(sink_name):
+					self.log(f"[AUDIO] loopback sink already exists (race): {sink_name}")
+					if not self._wait_loopback_sink_ready(sink_name):
+						return False
+					return self._set_default_source(sink_name)
 			self.log(f"[AUDIO] loopback sink create failed: {err}")
 			return False
+
 		self.log(f"[AUDIO] loopback sink created: {sink_name} module={created.stdout.strip()}")
 		if not self._wait_loopback_sink_ready(sink_name):
 			return False
